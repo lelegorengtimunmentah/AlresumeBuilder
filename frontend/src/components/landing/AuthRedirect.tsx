@@ -9,14 +9,15 @@ import { useAuthContext } from '@/contexts/AuthContext';
  * Rendered inside the landing page as a side-effect-only client component.
  */
 export function AuthRedirect() {
-  const { isAuthenticated, isLoading } = useAuthContext();
-  const router = useRouter();
+ const { isAuthenticated, isLoading } = useAuthContext();
+ const router = useRouter();
 
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.replace('/dashboard');
-    }
-  }, [isAuthenticated, isLoading, router]);
+ useEffect(() => {
+ if (!isLoading && isAuthenticated) {
+ router.replace('/dashboard');
+ }
+ }, [isAuthenticated, isLoading, router]);
 
-  return null;
+ return null;
 }
+

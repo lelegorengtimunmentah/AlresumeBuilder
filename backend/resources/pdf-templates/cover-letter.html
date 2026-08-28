@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <title>Surat Lamaran – {{ $resume->full_name }}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 12pt;
+            color: #1a1a1a;
+            background: #ffffff;
+            padding: 48px 64px;
+            line-height: 1.6;
+        }
+
+        /* ── Identitas pelamar ── */
+        .sender p { margin: 0; }
+        .sender .name { font-weight: 700; }
+        .sender { margin-bottom: 24px; }
+
+        /* ── Tanggal ── */
+        .date { margin-bottom: 18px; }
+
+        /* ── Tujuan ── */
+        .recipient { margin-bottom: 14px; }
+        .recipient p { margin: 0; }
+        .recipient .company { font-weight: 700; }
+
+        /* ── Perihal & salam pembuka ── */
+        .subject { margin-bottom: 14px; }
+        .salutation { margin-bottom: 12px; }
+
+        /* ── Isi surat ── */
+        .letter-body p { margin-bottom: 12px; text-align: justify; }
+
+        /* ── Tanda tangan ── */
+        .closing { margin-top: 36px; }
+        .signature-name {
+            margin-top: 56px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    {{-- ═══ IDENTITAS PELAMAR ═══ --}}
+    <div class="sender">
+        <p class="name">{{ $resume->full_name }}</p>
+        @if($resume->phone)<p>{{ $resume->phone }}</p>@endif
+        @if($resume->user?->email)<p>{{ $resume->user->email }}</p>@endif
+        @if($resume->address)<p>{{ $resume->address }}</p>@endif
+    </div>
+
+    {{-- ═══ TANGGAL ═══ --}}
+    <div class="date">{{ $letterDate }}</div>
+
+    {{-- ═══ TUJUAN ═══ --}}
+    <div class="recipient">
+        <p>Yth. {{ $recruiter ?: 'Pimpinan ' . ($company ?? 'Perusahaan') }},</p>
+        <p>{{ $company ?? '' }}</p>
+        @if($companyAddress)<p>{{ $companyAddress }}</p>@elseif($resume->address)<p>di {{ $resume->address }}</p>@endif
+    </div>
+
+    {{-- ═══ PERIHAL ═══ --}}
+    <p class="subject">Perihal: Posisi {{ $position ?? '' }}</p>
+
+    {{-- ═══ SALAM PEMBUKA ═══ --}}
+    <p class="salutation">Dengan hormat,</p>
+
+    {{-- ═══ ISI SURAT ═══ --}}
+    <div class="letter-body">
+        {!! $content !!}
+    </div>
+
+    {{-- ═══ TANDA TANGAN ═══ --}}
+    <div class="closing">
+        <p>Hormat saya,</p>
+        <p class="signature-name">{{ $resume->full_name }}</p>
+    </div>
+
+</body>
+</html>

@@ -26,16 +26,27 @@ class GenerateCoverLetterJob implements ShouldQueue
         $job->update(['status' => 'processing']);
 
         try {
-            $companyName  = $job->payload['company_name']  ?? null;
-            $positionName = $job->payload['position_name'] ?? null;
+            $companyName    = $job->payload['company_name']    ?? null;
+            $positionName   = $job->payload['position_name']   ?? null;
+            $recruiterName  = $job->payload['recruiter_name']  ?? null;
+            $companyAddress = $job->payload['company_address'] ?? null;
+            $jobSource      = $job->payload['job_source']      ?? null;
 
             if (! $companyName || ! $positionName) {
                 throw new \Exception('company_name or position_name not found in payload');
             }
 
             $resume = $job->resume()->with(['experience', 'skills'])->first();
-            $prompt = PromptBuilder::buildCoverLetterPrompt($resume, $companyName, $positionName);
+            $prompt = PromptBuilder::buildCoverLetterPrompt(
+                $resume,
+                $companyName,
+                $positionName,
+                $recruiterName,
+                $companyAddress,
+                $jobSource,
+            );
             $result = $aiService->callWithFallback($prompt);
+            $result = PromptBuilder::cleanCoverLetterResult($result);
 
             $job->update([
                 'status' => 'completed',

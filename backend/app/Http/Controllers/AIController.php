@@ -85,7 +85,7 @@ class AIController extends Controller
     /**
      * Trigger cover letter generation.
      * POST /api/resumes/{resume}/ai/cover-letter
-     * Body: company_name, position_name
+     * Body: company_name, position_name, recruiter_name?, company_address?, job_source?
      * → 202 { success: true, data: { job_id, status: "pending" } }
      * → 422 if validation fails
      */
@@ -94,8 +94,11 @@ class AIController extends Controller
         $this->authorize('update', $resume);
 
         $validated = $request->validate([
-            'company_name'  => ['required', 'string', 'max:255'],
-            'position_name' => ['required', 'string', 'max:255'],
+            'company_name'    => ['required', 'string', 'max:255'],
+            'position_name'   => ['required', 'string', 'max:255'],
+            'recruiter_name'  => ['nullable', 'string', 'max:255'],
+            'company_address' => ['nullable', 'string', 'max:255'],
+            'job_source'      => ['nullable', 'string', 'max:100'],
         ]);
 
         $job = $this->aiService->dispatchJob('cover_letter', $resume, $validated);

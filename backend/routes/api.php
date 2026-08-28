@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use App\Http\Controllers\AIController;
 use App\Http\Controllers\AuthController;
@@ -12,6 +12,7 @@ use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\ShareController;
 use App\Http\Controllers\SkillController;
 use App\Http\Controllers\UploadController;
+use App\Http\Controllers\UploadedAnalysisController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
@@ -51,9 +52,14 @@ Route::middleware('auth:sanctum')->group(function (): void {
     // PDF export
     Route::get('/pdf-templates', [PDFController::class, 'templates']);
     Route::get('/resumes/{resume}/export/pdf', [PDFController::class, 'export']);
+    Route::post('/resumes/{resume}/export/cover-letter-pdf', [PDFController::class, 'exportCoverLetter']);
 
     // Share URL — toggle visibility (auth required, must own resume)
     Route::patch('/resumes/{resume}/visibility', [ShareController::class, 'toggleVisibility']);
+
+    // Resume upload analysis
+    Route::post('/resume-analyses', [UploadedAnalysisController::class, 'store']);
+    Route::get('/resume-analyses/{analysis}', [UploadedAnalysisController::class, 'show']);
 
     // File uploads
     Route::post('/resumes/{resume}/photo', [UploadController::class, 'uploadPhoto']);

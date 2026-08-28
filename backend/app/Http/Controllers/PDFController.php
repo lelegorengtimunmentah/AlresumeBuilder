@@ -67,4 +67,46 @@ class PDFController extends Controller
             'Content-Length'      => strlen($pdfBinary),
         ]);
     }
+
+    /**
+     * Export a cover letter as a PDF file.
+     *
+     * The letter body is the (possibly user-edited) AI result sent by the
+     * client; identity block (phone/email), date, recipient and signature
+     * are rendered by the server-side template.
+     *
+     * POST /api/resumes/{resume}/export/cover-letter-pdf (requires auth:sanctum)
+     * Body: { content: string, company_name?: string, position_name?: string }
+     * → 200  Content-Type: application/pdf
+     *        Content-Disposition: attachment; filename="cover-letter-{id}.pdf"
+     */
+    public function exportCoverLetter(Request $request, Resume $resume): Response
+    {
+        $this->authorize('view', $resume);
+
+        $validated = $request->validate([
+            'content'         => ['required', 'string', 'max:20000'],
+            'company_name'    => ['nullable', 'string', 'max:200'],
+            'position_name'   => ['nullable', 'string', 'max:200'],
+            'recruiter_name'  => ['nullable', 'string', 'max:200'],
+            'company_address' => ['nullable', 'string', 'max:200'],
+        ]);
+
+        $pdfBinary = $this->pdfService->generateCoverLetter(
+            $resume,
+            $validated['content'],
+            $validated['company_name'] ?? null,
+            $validated['position_name'] ?? null,
+            $validated['recruiter_name'] ?? null,
+            $validated['company_address'] ?? null,
+        );
+
+        $filename = 'cover-letter-' . ($resume->public_slug ?? $resume->id) . '.pdf';
+
+        return response($pdfBinary, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Length'      => strlen($pdfBinary),
+        ]);
+    }
 }

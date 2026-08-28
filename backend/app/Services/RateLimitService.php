@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Services;
 
@@ -18,6 +18,7 @@ class RateLimitService
         'experience_rewrite'   => 10,
         'ats_score'            => 3,
         'cover_letter'         => 3,
+        'uploaded_resume'      => 3,
     ];
 
     /**

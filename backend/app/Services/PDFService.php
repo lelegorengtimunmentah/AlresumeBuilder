@@ -49,6 +49,69 @@ class PDFService
         $htmlContent  = file_get_contents($templatePath);
         $renderedHtml = Blade::render($htmlContent, ['resume' => $resume]);
 
+        return $this->renderHtmlToPdf($renderedHtml, 'resume');
+    }
+
+    /**
+     * Generate a PDF for a cover letter.
+     *
+     * The letter body is the (possibly user-edited) AI result; identity block,
+     * date, recipient and signature are rendered by the Blade template so
+     * phone/email are always present in the output.
+     */
+    public function generateCoverLetter(
+        Resume $resume,
+        string $content,
+        ?string $company = null,
+        ?string $position = null,
+        ?string $recruiter = null,
+        ?string $companyAddress = null
+    ): string {
+        $templatePath = resource_path('pdf-templates/cover-letter.html');
+        if (! file_exists($templatePath)) {
+            throw new \RuntimeException("PDF template tidak ditemukan: {$templatePath}");
+        }
+
+        $htmlContent  = file_get_contents($templatePath);
+        $renderedHtml = Blade::render($htmlContent, [
+            'resume'         => $resume,
+            'content'        => self::contentToParagraphs($content),
+            'company'        => $company,
+            'position'       => $position,
+            'recruiter'      => $recruiter,
+            'companyAddress' => $companyAddress,
+            'letterDate'     => now()->translatedFormat('d F Y'),
+        ]);
+
+        return $this->renderHtmlToPdf($renderedHtml, 'cover-letter');
+    }
+
+    /**
+     * Convert plain text into escaped <p> blocks. Blank lines separate
+     * paragraphs; single newlines become line breaks.
+     */
+    private static function contentToParagraphs(string $content): string
+    {
+        $trimmed = trim($content);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        $paragraphs = preg_split('/\R{2,}/u', $trimmed) ?: [$trimmed];
+
+        return collect($paragraphs)
+            ->map(fn ($p) => trim((string) $p))
+            ->filter()
+            ->map(fn ($p) => '<p>' . nl2br(e($p)) . '</p>')
+            ->implode('');
+    }
+
+    /**
+     * Render an HTML document to PDF via the Puppeteer script and
+     * return the binary content.
+     */
+    private function renderHtmlToPdf(string $renderedHtml, string $basename): string
+    {
         // Temp files
         $tmpDir = storage_path('app/tmp');
         if (! is_dir($tmpDir)) {
@@ -56,13 +119,13 @@ class PDFService
         }
 
         $uuid       = Str::uuid()->toString();
-        $inputPath  = $tmpDir . DIRECTORY_SEPARATOR . 'resume-' . $uuid . '.html';
-        $outputPath = $tmpDir . DIRECTORY_SEPARATOR . 'resume-' . $uuid . '.pdf';
+        $inputPath  = $tmpDir . DIRECTORY_SEPARATOR . $basename . '-' . $uuid . '.html';
+        $outputPath = $tmpDir . DIRECTORY_SEPARATOR . $basename . '-' . $uuid . '.pdf';
 
         file_put_contents($inputPath, $renderedHtml);
 
         $scriptPath = base_path('scripts/pdf-generator.js');
-        
+
         $cmd = sprintf(
             'node "%s" --input="%s" --output="%s" 2>&1',
             $scriptPath,
