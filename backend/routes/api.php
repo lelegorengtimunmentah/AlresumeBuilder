@@ -15,6 +15,9 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\UploadedAnalysisController;
 use Illuminate\Support\Facades\Route;
 
+// Health check — used by Railway deployment probe
+Route::get('/health', fn () => response()->json(['status' => 'ok', 'timestamp' => now()->toISOString()]));
+
 Route::prefix('auth')->group(function (): void {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
