@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────
 # Stage 1: Install Composer dependencies
 # ─────────────────────────────────────────────
-FROM composer:2.8 AS composer-build
+FROM composer:2.9 AS composer-build
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN composer install \
 # ─────────────────────────────────────────────
 # Stage 2: Final image
 # ─────────────────────────────────────────────
-FROM php:8.2-fpm-alpine
+FROM php:8.4-fpm-alpine
 
 # Install system dependencies & PHP extensions
 RUN apk add --no-cache \
@@ -40,7 +40,8 @@ RUN apk add --no-cache \
         zip \
         pcntl \
         bcmath \
-        opcache
+        opcache \
+        intl
 
 WORKDIR /var/www/html
 
