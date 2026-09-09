@@ -25,13 +25,23 @@ class PromptBuilder
         $skills = $resume->skills->pluck('name')->join(', ');
 
         return <<<PROMPT
-        Tulis ringkasan profesional dalam Bahasa Indonesia untuk kandidat berikut.
+        Tulis DUA versi ringkasan profesional dalam Bahasa Indonesia untuk kandidat berikut.
         Nama: {$resume->full_name}
         Pendidikan: {$education}
         Pengalaman: {$experience}
         Skills: {$skills}
-        
-        Buat ringkasan 2-3 kalimat yang menonjolkan keahlian dan pengalaman utama. Gunakan sudut pandang orang pertama.
+
+        Ketentuan:
+        - Setiap ringkasan 2-3 kalimat, sudut pandang orang pertama
+        - Pilihan 1: gaya formal dan padat (cocok untuk perusahaan korporat)
+        - Pilihan 2: gaya dinamis dan modern (cocok untuk startup/tech)
+        - Gunakan format PERSIS seperti di bawah, tanpa teks tambahan di luar format:
+
+        ###PILIHAN_1###
+        [isi ringkasan pilihan 1]
+        ###PILIHAN_2###
+        [isi ringkasan pilihan 2]
+        ###SELESAI###
         PROMPT;
     }
 

@@ -2,6 +2,10 @@
 
 namespace App\Services;
 
+use App\Jobs\AnalyzeATSScoreJob;
+use App\Jobs\GenerateAISummaryJob;
+use App\Jobs\GenerateCoverLetterJob;
+use App\Jobs\RewriteExperienceJob;
 use App\Models\AiJob;
 use App\Models\Resume;
 use App\Services\AI\AIProviderException;
@@ -11,11 +15,11 @@ use App\Services\AI\OpenAIProvider;
 class AIService
 {
     /**
-     * Attempts per provider before giving up on it. Retrying once recovers
-     * from transient failures (network blip, momentary 429/5xx, cold start)
-     * without requiring the user to manually re-trigger the job.
+     * Attempts per provider before giving up on it. Retrying a couple times
+     * recovers from transient failures (network blip, momentary 429/5xx,
+     * Gemini "high demand" 503) without requiring the user to re-trigger.
      */
-    private const MAX_PROVIDER_ATTEMPTS = 2;
+    private const MAX_PROVIDER_ATTEMPTS = 3;
 
     public function __construct(
         private readonly RateLimitService $rateLimitService,
@@ -34,40 +38,61 @@ class AIService
         $this->rateLimitService->checkOrFail($resume->user, $type);
 
         $job = AiJob::create([
-            'user_id'   => $resume->user_id,
+            'user_id' => $resume->user_id,
             'resume_id' => $resume->id,
-            'type'      => $type,
-            'status'    => 'pending',
-            'payload'   => $extra,
+            'type' => $type,
+            'status' => 'pending',
+            'payload' => $extra,
         ]);
 
         // Dispatch sesuai tipe
         match ($type) {
-            'summary'            => \App\Jobs\GenerateAISummaryJob::dispatch($job->id),
-            'experience_rewrite' => \App\Jobs\RewriteExperienceJob::dispatch($job->id),
-            'ats_score'          => \App\Jobs\AnalyzeATSScoreJob::dispatch($job->id),
-            'cover_letter'       => \App\Jobs\GenerateCoverLetterJob::dispatch($job->id),
-            default              => null,
+            'summary' => GenerateAISummaryJob::dispatch($job->id),
+            'experience_rewrite' => RewriteExperienceJob::dispatch($job->id),
+            'ats_score' => AnalyzeATSScoreJob::dispatch($job->id),
+            'cover_letter' => GenerateCoverLetterJob::dispatch($job->id),
+            default => null,
         };
 
         return $job;
     }
 
     /**
-     * Call Gemini first; if it fails, fall back to OpenAI.
+     * Call Gemini first; if it fails and OpenAI key is configured, fall back.
      * Each provider is retried before moving on.
      *
      * @throws AIProviderException when all providers/attempts fail.
      */
     public function callWithFallback(string $prompt): string
     {
-        try {
-            return $this->withRetries(fn (): string => $this->gemini->generate($prompt));
-        } catch (AIProviderException) {
-            // Gemini failed after retries — fall through to OpenAI fallback
+        $geminiKey = config('services.gemini.key');
+        $openaiKey = config('services.openai.key');
+
+        // Jangan coba provider kalau key-nya tidak dikonfigurasi
+        $useGemini = ! empty($geminiKey);
+        $useOpenAI = ! empty($openaiKey) && $openaiKey !== $geminiKey;
+
+        if (! $useGemini && ! $useOpenAI) {
+            throw new AIProviderException('Tidak ada AI provider yang dikonfigurasi. Harap isi GEMINI_API_KEY di .env.');
         }
 
-        return $this->withRetries(fn (): string => $this->openAI->generate($prompt));
+        if ($useGemini) {
+            try {
+                return $this->withRetries(fn (): string => $this->gemini->generate($prompt));
+            } catch (AIProviderException $e) {
+                if (! $useOpenAI) {
+                    // Tidak ada fallback — lempar error Gemini langsung
+                    throw $e;
+                }
+                // Gemini gagal — coba OpenAI sebagai fallback
+            }
+        }
+
+        if ($useOpenAI) {
+            return $this->withRetries(fn (): string => $this->openAI->generate($prompt));
+        }
+
+        throw new AIProviderException('Semua AI provider gagal.');
     }
 
     /**
@@ -79,6 +104,7 @@ class AIService
     private function withRetries(callable $call): string
     {
         $lastException = null;
+        $delayMs = 500;
 
         for ($attempt = 1; $attempt <= self::MAX_PROVIDER_ATTEMPTS; $attempt++) {
             try {
@@ -87,7 +113,10 @@ class AIService
                 $lastException = $e;
 
                 if ($attempt < self::MAX_PROVIDER_ATTEMPTS) {
-                    sleep(2); // brief pause before retrying a transient failure
+                    // Exponential backoff + jitter memberi jeda sebelum retry
+                    // supaya tidak menekan provider yang sedang burst/sibuk.
+                    usleep(($delayMs * 1000) + random_int(0, 400_000));
+                    $delayMs *= 2;
                 }
             }
         }

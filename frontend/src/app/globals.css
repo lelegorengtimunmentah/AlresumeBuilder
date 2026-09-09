@@ -189,3 +189,6 @@
   background-clip: text;
   color: transparent;
 }
+
+/* Print styles are handled via printCoverLetter() in CoverLetterEditor —
+   a dedicated print window is opened so no @media print rules are needed here. */

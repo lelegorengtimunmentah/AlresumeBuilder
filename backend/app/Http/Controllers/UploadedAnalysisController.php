@@ -112,11 +112,47 @@ class UploadedAnalysisController extends Controller
     private function extractWordText(string $filePath): string
     {
         $phpWord = WordIOFactory::load($filePath);
-        $text = '';
+        $text    = '';
 
         foreach ($phpWord->getSections() as $section) {
-            foreach ($section->getElements() as $element) {
-                $text .= $element->getText() . "\n";
+            $text .= $this->extractElementsText($section->getElements());
+        }
+
+        return $text;
+    }
+
+    /**
+     * Recursively extract plain text from a PhpWord element collection.
+     * Handles TextRun, Table, AbstractContainer, and skips elements without text.
+     *
+     * @param  iterable<\PhpOffice\PhpWord\Element\AbstractElement>  $elements
+     */
+    private function extractElementsText(iterable $elements): string
+    {
+        $text = '';
+
+        foreach ($elements as $element) {
+            if ($element instanceof \PhpOffice\PhpWord\Element\TextBreak
+                || $element instanceof \PhpOffice\PhpWord\Element\PageBreak) {
+                $text .= "\n";
+                continue;
+            }
+
+            // Elements that contain child elements (TextRun, Table rows/cells, etc.)
+            if (method_exists($element, 'getElements')) {
+                $inner = $this->extractElementsText($element->getElements());
+                if ($inner !== '') {
+                    $text .= $inner . "\n";
+                }
+                continue;
+            }
+
+            // Simple text-bearing elements
+            if (method_exists($element, 'getText')) {
+                $line = (string) $element->getText();
+                if ($line !== '') {
+                    $text .= $line . "\n";
+                }
             }
         }
 
