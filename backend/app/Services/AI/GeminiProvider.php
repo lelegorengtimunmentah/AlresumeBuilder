@@ -12,8 +12,9 @@ class GeminiProvider
         $model  = 'gemini-3.6-flash';
 
         $client = new Client([
-            // null/false → pakai CA bundle default sistem; string → path CA bundle kustom
-            'verify'  => config('services.ai.ca_bundle') ?: true,
+            // Di environment lokal Windows, verifikasi SSL bisa dinonaktifkan
+            // untuk menghindari cURL SSL error. Di production, selalu true.
+            'verify'  => app()->isProduction() ? true : (config('services.ai.ca_bundle') ?: false),
             'timeout' => 30,
         ]);
 

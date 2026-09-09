@@ -45,7 +45,7 @@ class ShareController extends Controller
     {
         $resume = Resume::where('public_slug', $publicSlug)
             ->where('is_public', true)
-            ->with(['education', 'experience', 'skills', 'projects', 'certificates'])
+            ->with(['user', 'education', 'experience', 'skills', 'projects', 'certificates'])
             ->firstOrFail(); // automatically returns 404 if not found or is_public=false
 
         return response()->json(['data' => new PublicResumeResource($resume)]);

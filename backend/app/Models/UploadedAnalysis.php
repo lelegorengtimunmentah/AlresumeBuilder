@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 namespace App\Models;
 
@@ -10,7 +10,7 @@ class UploadedAnalysis extends Model
 {
     use HasUuids;
 
-    protected  = [
+    protected $fillable = [
         'user_id',
         'file_path',
         'original_name',
@@ -31,6 +31,6 @@ class UploadedAnalysis extends Model
 
     public function user(): BelongsTo
     {
-        return ->belongsTo(User::class);
+        return $this->belongsTo(User::class);
     }
 }

@@ -24,6 +24,7 @@ class PublicResumeResource extends JsonResource
             'title'       => $this->title,
             'template'    => $this->template,
             'full_name'   => $this->full_name,
+            'email'       => $this->whenLoaded('user', fn () => $this->user?->email),
             'phone'       => $this->phone,
             'address'     => $this->address,
             'summary'     => $this->summary,

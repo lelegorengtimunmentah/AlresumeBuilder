@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -11,119 +11,131 @@ import { AISummaryConfirm } from '@/components/ai/AISummaryConfirm';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+/**
+ * Pesan progres khusus generate summary.
+ * "Sedang memproses..." harus tetap menjadi pesan pertama (dipakai test).
+ */
 const SUMMARY_LOADING_MESSAGES = [
- 'Sedang memproses...',
- 'Menganalisis data resume Anda...',
- 'Mengidentifikasi pencapaian dan keahlian utama...',
- 'Merumuskan narasi profesional yang menarik...',
- 'Memfinalisasi ringkasan Anda...',
+  'Sedang memproses...',
+  'Menganalisis data resume Anda...',
+  'Mengidentifikasi pencapaian dan keahlian utama...',
+  'Merumuskan narasi profesional yang menarik...',
+  'Memfinalisikan ringkasan Anda...',
 ];
 
+/**
+ * AI Summary page — triggers AI summary generation for a resume,
+ * shows progress via AIJobStatus, then presents AISummaryConfirm
+ * for the user to review/edit before saving.
+ *
+ * Requirements: 4.4, 4.5
+ */
 export default function AISummaryPage() {
- const params = useParams<{ id: string }>();
- const id = params.id;
+  const params = useParams<{ id: string }>();
+  const id = params.id;
 
- const { status, result, error, dispatch, reset } = useAIJob();
- const [confirmed, setConfirmed] = useState(false);
- const [savedText, setSavedText] = useState<string | null>(null);
- const [dispatchError, setDispatchError] = useState<string | null>(null);
+  const { status, result, error, dispatch, reset } = useAIJob();
+  const [confirmed, setConfirmed] = useState(false);
+  const [savedText, setSavedText] = useState<string | null>(null);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
 
- const handleGenerate = async () => {
- setConfirmed(false);
- setSavedText(null);
- setDispatchError(null);
- try {
- await dispatch(`/api/resumes/${id}/ai/summary`);
- } catch {
- reset();
- setDispatchError(
- 'Gagal memulai generate summary. Periksa kuota harian Anda lalu coba lagi.',
- );
- }
- };
+  const handleGenerate = async () => {
+    setConfirmed(false);
+    setSavedText(null);
+    setDispatchError(null);
+    try {
+      await dispatch(`/api/resumes/${id}/ai/summary`);
+    } catch (err: unknown) {
+      reset();
+      const axiosError = err as { response?: { data?: { message?: string } }; message?: string };
+      const msg =
+        axiosError?.response?.data?.message ??
+        axiosError?.message ??
+        'Gagal memulai generate summary. Silakan coba lagi.';
+      setDispatchError(msg);
+    }
+  };
 
- const handleConfirmed = (text: string) => {
- setSavedText(text);
- setConfirmed(true);
- };
+  const handleConfirmed = (text: string) => {
+    setSavedText(text);
+    setConfirmed(true);
+  };
 
- const handleRegenerate = () => {
- reset();
- setConfirmed(false);
- setSavedText(null);
- };
+  const handleRegenerate = () => {
+    reset();
+    setConfirmed(false);
+    setSavedText(null);
+  };
 
- const isInFlight = status === 'pending' || status === 'processing';
+  const isInFlight = status === 'pending' || status === 'processing';
 
- return (
- <div className="max-w-2xl space-y-6">
- {/* Header */}
- <div className="flex items-center gap-3">
- <Button variant="ghost" size="icon" asChild>
- <Link href={`/resumes/${id}`} aria-label="Kembali ke Resume Builder">
- <ArrowLeft className="h-4 w-4" aria-hidden="true" />
- </Link>
- </Button>
- <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
- AI <span className="text-primary">Summary</span>
- </h1>
- </div>
+  return (
+    <div className="max-w-2xl space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href={`/resumes/${id}`} aria-label="Kembali ke Resume Builder">
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </Button>
+        <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
+          AI <span className="text-gradient-ai">Summary</span>
+        </h1>
+      </div>
 
- <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
- Buat ringkasan profil profesional otomatis berdasarkan data resume Anda.
- Anda dapat mengedit hasilnya sebelum menyimpan.
- </p>
+      <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
+        Buat ringkasan profil profesional otomatis berdasarkan data resume Anda.
+        Anda dapat mengedit hasilnya sebelum menyimpan.
+      </p>
 
- {confirmed && savedText && (
- <Alert>
- <AlertDescription className="text-green-400">
- Ringkasan berhasil disimpan ke profil.
- </AlertDescription>
- </Alert>
- )}
+      {confirmed && savedText && (
+        <Alert>
+          <AlertDescription className="text-green-700 dark:text-green-400">
+            Ringkasan berhasil disimpan ke profil.
+          </AlertDescription>
+        </Alert>
+      )}
 
- {dispatchError && (
- <Alert variant="destructive">
- <AlertDescription>{dispatchError}</AlertDescription>
- </Alert>
- )}
+      {dispatchError && (
+        <Alert variant="destructive">
+          <AlertDescription>{dispatchError}</AlertDescription>
+        </Alert>
+      )}
 
- {(status === 'idle' || status === 'failed') && !confirmed && (
- <Button
- onClick={handleGenerate}
- disabled={isInFlight}
- className="gap-2"
- >
- <Sparkles className="h-4 w-4" aria-hidden="true" />
- Generate AI Summary
- </Button>
- )}
+      {(status === 'idle' || status === 'failed') && !confirmed && (
+        <Button
+          onClick={handleGenerate}
+          disabled={isInFlight}
+          className="gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md shadow-fuchsia-500/20 transition-all hover:opacity-90 hover:shadow-lg hover:shadow-fuchsia-500/30"
+        >
+          <Sparkles className="h-4 w-4" aria-hidden="true" />
+          Generate AI Summary
+        </Button>
+      )}
 
- {confirmed && (
- <Button onClick={handleRegenerate} variant="outline" className="gap-2">
- <RefreshCw className="h-4 w-4" aria-hidden="true" />
- Buat Ulang Summary
- </Button>
- )}
+      {confirmed && (
+        <Button onClick={handleRegenerate} variant="outline" className="gap-2">
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          Buat Ulang Summary
+        </Button>
+      )}
 
- {(isInFlight || status === 'failed') && (
- <AIJobStatus
- status={status}
- error={error}
- loadingMessages={SUMMARY_LOADING_MESSAGES}
- />
- )}
+      {(isInFlight || status === 'failed') && (
+        <AIJobStatus
+          status={status}
+          error={error}
+          loadingMessages={SUMMARY_LOADING_MESSAGES}
+        />
+      )}
 
- {status === 'completed' && result && !confirmed && (
- <AISummaryConfirm
- resumeId={id}
- result={result}
- onConfirmed={handleConfirmed}
- onCancel={handleRegenerate}
- />
- )}
- </div>
- );
+      {status === 'completed' && result && !confirmed && (
+        <AISummaryConfirm
+          resumeId={id}
+          result={result}
+          onConfirmed={handleConfirmed}
+          onCancel={handleRegenerate}
+        />
+      )}
+    </div>
+  );
 }
-
-

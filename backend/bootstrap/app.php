@@ -20,8 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // API routes pakai Bearer token — tidak butuh CSRF/session
-        // statefulApi() dihapus agar tidak inject CSRF middleware ke API routes
+        // Daftarkan CORS middleware agar berlaku untuk semua API routes
+        $middleware->use([
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (InsufficientCreditsException $e): JsonResponse {

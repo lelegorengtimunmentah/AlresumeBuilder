@@ -1,166 +1,185 @@
 'use client';
 
 import React, {
- createContext,
- useCallback,
- useContext,
- useEffect,
- useMemo,
- useState,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
+import Cookies from 'js-cookie';
 import apiClient, { saveToken, getToken, clearToken } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/api';
 
-// --- Types --------------------------------------------------------------------
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface User {
- id: string;
- name: string;
- email: string;
- plan: 'free' | 'pro';
- resume_credits: number;
+  id: string;
+  name: string;
+  email: string;
+  plan: 'free' | 'pro';
+  resume_credits: number;
 }
 
 export interface LoginCredentials {
- email: string;
- password: string;
+  email: string;
+  password: string;
 }
 
 export interface RegisterData {
- name: string;
- email: string;
- password: string;
+  name: string;
+  email: string;
+  password: string;
 }
 
 interface AuthState {
- user: User | null;
- isLoading: boolean;
- isAuthenticated: boolean;
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 interface AuthActions {
- login: (credentials: LoginCredentials) => Promise<void>;
- logout: () => Promise<void>;
- register: (data: RegisterData) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
 }
 
 export type AuthContextValue = AuthState & AuthActions;
 
-// --- Context ------------------------------------------------------------------
-
-export const AuthContext = createContext<AuthContextValue | null>(null);
-
-// --- Cookie helpers (synced with proxy.ts middleware) --------------------------
+// ─── Cookie helper ────────────────────────────────────────────────────────────
 
 const IS_AUTH_COOKIE = 'is_authenticated';
 
 function setAuthCookie() {
- if (typeof document !== 'undefined') {
- document.cookie = `${IS_AUTH_COOKIE}=1; path=/; max-age=86400; SameSite=Lax`;
- }
+  Cookies.set(IS_AUTH_COOKIE, '1', { path: '/', sameSite: 'lax' });
 }
 
 function clearAuthCookie() {
- if (typeof document !== 'undefined') {
- document.cookie = `${IS_AUTH_COOKIE}=; path=/; max-age=0`;
- }
+  Cookies.remove(IS_AUTH_COOKIE, { path: '/' });
 }
 
-// --- Provider -----------------------------------------------------------------
+// ─── Context ──────────────────────────────────────────────────────────────────
+
+export const AuthContext = createContext<AuthContextValue | null>(null);
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
- const [user, setUser] = useState<User | null>(null);
- const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
- // -- Bootstrap: check existing session on mount ----------------------------
- useEffect(() => {
- let cancelled = false;
+  // ── Bootstrap: check existing session on mount ────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
 
- async function fetchCurrentUser() {
- // No token = definitely not logged in
- if (!getToken()) {
- if (!cancelled) {
- setUser(null);
- setIsLoading(false);
- }
- return;
- }
+    async function fetchCurrentUser() {
+      // No token = definitely not logged in
+      if (!getToken()) {
+        if (!cancelled) {
+          setUser(null);
+          setIsLoading(false);
+        }
+        return;
+      }
 
- try {
- const { data: envelope } = await apiClient.get<ApiResponse<{ user: User }>>(
- '/api/auth/me',
- );
- if (!cancelled) {
- setUser(envelope.data.user);
- }
- } catch {
- clearToken();
- if (!cancelled) setUser(null);
- } finally {
- if (!cancelled) setIsLoading(false);
- }
- }
+      try {
+        type MeResponse =
+          | ApiResponse<{ user: User }>
+          | ApiResponse<User>;
 
- fetchCurrentUser();
- return () => { cancelled = true; };
- }, []);
+        const { data: envelope } = await apiClient.get<MeResponse>(
+          '/api/auth/me',
+        );
 
- // -- Actions ---------------------------------------------------------------
+        // Backend may return { data: { user } } or { data: user } — handle both
+        let resolvedUser: User;
+        const payload = envelope.data as { user?: User } & Partial<User>;
+        if (payload.user && typeof payload.user === 'object') {
+          resolvedUser = payload.user;
+        } else {
+          resolvedUser = payload as User;
+        }
 
- const login = useCallback(async (credentials: LoginCredentials) => {
- const { data: envelope } = await apiClient.post<
- ApiResponse<{ user: User; token: string }>
- >('/api/auth/login', credentials);
+        if (!cancelled) {
+          setUser(resolvedUser);
+          setAuthCookie();
+        }
+      } catch {
+        // Not authenticated — clear any stale token and cookie
+        clearToken();
+        clearAuthCookie();
+        if (!cancelled) {
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
 
- saveToken(envelope.data.token);
- setAuthCookie();
- setUser(envelope.data.user);
- }, []);
+    fetchCurrentUser();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
- const register = useCallback(async (data: RegisterData) => {
- const { data: envelope } = await apiClient.post<
- ApiResponse<{ user: User; token: string }>
- >('/api/auth/register', data);
+  // ── Actions ───────────────────────────────────────────────────────────────
 
- saveToken(envelope.data.token);
- setAuthCookie();
- setUser(envelope.data.user);
- }, []);
+  const login = useCallback(async (credentials: LoginCredentials) => {
+    const { data: envelope } = await apiClient.post<
+      ApiResponse<{ user: User; token: string }>
+    >('/api/auth/login', credentials);
 
- const logout = useCallback(async () => {
- try {
- await apiClient.post('/api/auth/logout');
- } finally {
- clearToken();
- clearAuthCookie();
- setUser(null);
- }
- }, []);
+    saveToken(envelope.data.token);
+    setUser(envelope.data.user);
+    setAuthCookie();
+  }, []);
 
- // -- Memoised context value ------------------------------------------------
+  const register = useCallback(async (data: RegisterData) => {
+    const { data: envelope } = await apiClient.post<
+      ApiResponse<{ user: User; token: string }>
+    >('/api/auth/register', data);
 
- const value = useMemo<AuthContextValue>(
- () => ({
- user,
- isLoading,
- isAuthenticated: user !== null,
- login,
- logout,
- register,
- }),
- [user, isLoading, login, logout, register],
- );
+    saveToken(envelope.data.token);
+    setUser(envelope.data.user);
+    setAuthCookie();
+  }, []);
 
- return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const logout = useCallback(async () => {
+    try {
+      await apiClient.post('/api/auth/logout');
+    } finally {
+      clearToken();
+      setUser(null);
+      clearAuthCookie();
+    }
+  }, []);
+
+  // ── Memoised context value ────────────────────────────────────────────────
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: user !== null,
+      login,
+      logout,
+      register,
+    }),
+    [user, isLoading, login, logout, register],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// --- Internal hook ------------------------------------------------------------
+// ─── Internal hook (used by useAuth.ts) ──────────────────────────────────────
 
 export function useAuthContext(): AuthContextValue {
- const ctx = useContext(AuthContext);
- if (!ctx) {
- throw new Error('useAuth must be used inside <AuthProvider>');
- }
- return ctx;
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error('useAuth must be used inside <AuthProvider>');
+  }
+  return ctx;
 }
-

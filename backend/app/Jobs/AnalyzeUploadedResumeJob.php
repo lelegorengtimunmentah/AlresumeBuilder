@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 namespace App\Jobs;
 
@@ -15,34 +15,34 @@ class AnalyzeUploadedResumeJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public  = 1;
-    public  = 150;
+    public $tries = 1;
+    public $timeout = 150;
 
-    public function __construct(public string ) {}
+    public function __construct(public string $analysisId) {}
 
-    public function handle(AIService ): void
+    public function handle(AIService $aiService): void
     {
-         = UploadedAnalysis::findOrFail(->analysisId);
-        ->update(['status' => 'processing']);
+        $analysis = UploadedAnalysis::findOrFail($this->analysisId);
+        $analysis->update(['status' => 'processing']);
 
         try {
-             = PromptBuilder::buildUploadedATSPrompt(->extracted_text);
-             = ->callWithFallback();
+            $prompt = PromptBuilder::buildUploadedATSPrompt($analysis->extracted_text);
+            $result = $aiService->callWithFallback($prompt);
 
-             = json_decode(, true);
+            $data = json_decode($result, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new \Exception('AI returned invalid JSON for ATS score');
             }
 
-            ->update([
+            $analysis->update([
                 'status' => 'completed',
-                'score' => ['score'] ?? null,
-                'recommendations' => ['recommendations'] ?? null,
+                'score' => $data['score'] ?? null,
+                'recommendations' => $data['recommendations'] ?? null,
             ]);
-        } catch (\Exception ) {
-            ->update([
+        } catch (\Exception $e) {
+            $analysis->update([
                 'status' => 'failed',
-                'error_message' => ->getMessage(),
+                'error_message' => $e->getMessage(),
             ]);
         }
     }
