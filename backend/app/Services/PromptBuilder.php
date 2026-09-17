@@ -99,23 +99,87 @@ class PromptBuilder
     }
 
     /**
-     * Build a prompt for scoring an uploaded resume text against ATS criteria.
+     * Build a prompt for deep analysis of an uploaded resume text.
+     *
+     * Returns a rich JSON object with:
+     *  - overall ATS score
+     *  - per-section scores
+     *  - keywords found / missing
+     *  - actionable recommendations
+     *  - structured parsed resume data (for "Generate Resume" feature)
      */
     public static function buildUploadedATSPrompt(string $extractedText): string
     {
         return <<<PROMPT
-        Analisis CV berikut dan berikan skor ATS (Applicant Tracking System) dari 0-100.
-        
+        Kamu adalah ahli rekrutmen dan ATS (Applicant Tracking System) berpengalaman.
+        Analisis teks CV berikut secara mendalam dan kembalikan HANYA satu objek JSON valid, tanpa teks lain di luar JSON.
+
         Teks CV:
         {$extractedText}
-        
-        Kembalikan HANYA JSON valid dengan format:
+
+        Kembalikan JSON dengan struktur PERSIS seperti ini (isi nilai yang sesuai, jangan tambah field lain):
         {
-            "score": <angka 0-100>,
-            "recommendations": [<string rekomendasi 1>, <string rekomendasi 2>, ...]
+          "score": <integer 0-100, skor ATS keseluruhan>,
+          "section_scores": {
+            "contact":     <integer 0-100>,
+            "summary":     <integer 0-100>,
+            "experience":  <integer 0-100>,
+            "education":   <integer 0-100>,
+            "skills":      <integer 0-100>,
+            "formatting":  <integer 0-100>
+          },
+          "keywords_found":   [<string kata kunci relevan yang ADA di CV>],
+          "keywords_missing": [<string kata kunci penting yang TIDAK ADA di CV dan sebaiknya ditambahkan>],
+          "recommendations": [<string rekomendasi spesifik dan actionable, minimal 5>],
+          "parsed_data": {
+            "full_name":  "<string atau null>",
+            "email":      "<string atau null>",
+            "phone":      "<string atau null>",
+            "address":    "<string atau null>",
+            "summary":    "<string ringkasan profesional yang ada di CV, atau null>",
+            "education": [
+              {
+                "institution":    "<string>",
+                "degree":         "<string atau null>",
+                "field_of_study": "<string atau null>",
+                "start_date":     "<YYYY-MM-DD atau YYYY-01-01 jika hanya tahun, atau null>",
+                "end_date":       "<YYYY-MM-DD atau YYYY-01-01 jika hanya tahun, atau null>",
+                "gpa":            "<string atau null>"
+              }
+            ],
+            "experience": [
+              {
+                "company":    "<string>",
+                "position":   "<string>",
+                "start_date": "<YYYY-MM-DD atau YYYY-01-01 jika hanya tahun, atau null>",
+                "end_date":   "<YYYY-MM-DD atau null jika masih aktif>",
+                "is_current": <true jika masih aktif, false jika sudah selesai>,
+                "description":"<string deskripsi pekerjaan atau null>"
+              }
+            ],
+            "skills": [
+              { "name": "<string>", "level": "<beginner|intermediate|advanced>" }
+            ],
+            "projects": [
+              {
+                "name":        "<string>",
+                "description": "<string atau null>",
+                "tech_stack":  "<string teknologi dipisah koma, atau null>",
+                "url":         "<string atau null>"
+              }
+            ]
+          }
         }
-        
-        Pertimbangkan: kelengkapan data, penggunaan kata kunci, format, struktur, deskripsi pengalaman, skills relevan, dan kesesuaian format ATS.
+
+        Panduan penilaian section_scores:
+        - contact (0-100): apakah nama, email, telepon, alamat/lokasi tersedia dan jelas
+        - summary (0-100): apakah ada ringkasan profesional yang kuat dan relevan (0 jika tidak ada)
+        - experience (0-100): jumlah pengalaman, kualitas deskripsi, penggunaan action verb dan metrik
+        - education (0-100): kelengkapan data pendidikan, relevansi gelar
+        - skills (0-100): keragaman skills, relevansi untuk dunia kerja profesional
+        - formatting (0-100): kejelasan struktur, konsistensi format tanggal, keterbacaan
+
+        Untuk parsed_data: ekstrak semua data yang bisa dibaca. Jika suatu field tidak ada di CV, isi null atau array kosong [].
         PROMPT;
     }
 

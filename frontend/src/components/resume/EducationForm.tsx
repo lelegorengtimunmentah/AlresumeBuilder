@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -11,6 +11,7 @@ import {
  type EducationInput,
 } from '@/lib/validations/resume.schema';
 import apiClient from '@/lib/api-client';
+import { formatDateId } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,13 +25,13 @@ import {
  DialogClose,
 } from '@/components/ui/dialog';
 
-// ─── Props ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface EducationFormProps {
  resumeId: string;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Field({
  label,
@@ -65,7 +66,7 @@ const EMPTY_DEFAULTS: EducationInput = {
  gpa: null,
 };
 
-// ─── Modal Form ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Modal Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface EducationModalProps {
  open: boolean;
@@ -165,7 +166,7 @@ function EducationModal({ open, onOpenChange, initial, onSave }: EducationModalP
  />
  </Field>
 
- {/* Degree — hidden for SMA, shown as optional for SMA (program keahlian), required for PT */}
+ {/* Degree â€” hidden for SMA, shown as optional for SMA (program keahlian), required for PT */}
  {!isSMA ? (
  <Field
  label={isPT ? 'Gelar' : 'Program Keahlian / Jurusan'}
@@ -188,7 +189,7 @@ function EducationModal({ open, onOpenChange, initial, onSave }: EducationModalP
  </Field>
  )}
 
- {/* Field of study — only for Perguruan Tinggi */}
+ {/* Field of study â€” only for Perguruan Tinggi */}
  {isPT && (
  <Field label="Program Studi" error={errors.field_of_study?.message} required>
  <Input
@@ -247,7 +248,7 @@ function EducationModal({ open, onOpenChange, initial, onSave }: EducationModalP
  );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function EducationForm({ resumeId }: EducationFormProps) {
  const [entries, setEntries] = useState<Education[]>([]);
@@ -362,11 +363,11 @@ export function EducationForm({ resumeId }: EducationFormProps) {
  )}
  </div>
  <p className="text-sm text-muted-foreground">
- {[entry.degree, entry.field_of_study].filter(Boolean).join(' — ')}
+ {[entry.degree, entry.field_of_study].filter(Boolean).join(' â€” ')}
  </p>
  <p className="text-xs text-muted-foreground mt-0.5">
- {entry.start_date} – {entry.end_date ?? 'Sekarang'}
- {entry.gpa && ` · IPK ${entry.gpa}`}
+ {formatDateId(entry.start_date)} – {entry.end_date ? formatDateId(entry.end_date) : 'Sekarang'}
+ {entry.gpa && ` Â· IPK ${entry.gpa}`}
  </p>
  </div>
  <div className="flex gap-1 shrink-0">

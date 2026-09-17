@@ -17,6 +17,10 @@ class UploadedAnalysis extends Model
         'extracted_text',
         'score',
         'recommendations',
+        'section_scores',
+        'keywords_found',
+        'keywords_missing',
+        'parsed_data',
         'status',
         'error_message',
     ];
@@ -24,8 +28,12 @@ class UploadedAnalysis extends Model
     protected function casts(): array
     {
         return [
-            'recommendations' => 'array',
-            'score' => 'integer',
+            'score'            => 'integer',
+            'recommendations'  => 'array',
+            'section_scores'   => 'array',
+            'keywords_found'   => 'array',
+            'keywords_missing' => 'array',
+            'parsed_data'      => 'array',
         ];
     }
 

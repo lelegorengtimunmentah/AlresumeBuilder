@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -11,6 +11,7 @@ import {
   type ExperienceInput,
 } from '@/lib/validations/resume.schema';
 import apiClient from '@/lib/api-client';
+import { formatDateId } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,13 +30,13 @@ import { useAIJob } from '@/hooks/useAIJob';
 import { AIJobStatus } from '@/components/ai/AIJobStatus';
 import { ExperienceRewriteConfirm } from '@/components/ai/ExperienceRewriteConfirm';
 
-// ─── Props ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface ExperienceFormProps {
   resumeId: string;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function extractApiErrorMessage(err: unknown, fallback: string): string {
   const response = (
@@ -95,7 +96,7 @@ const EMPTY_DEFAULTS: ExperienceInput = {
   description: null,
 };
 
-// ─── Modal Form ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Modal Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ExperienceModalProps {
   open: boolean;
@@ -203,7 +204,7 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
             </select>
           </Field>
 
-          {/* ── KERJA fields ── */}
+          {/* â”€â”€ KERJA fields â”€â”€ */}
           {isKerja && (
             <>
               <Field label="Nama Perusahaan / Instansi" error={errors.company?.message} required>
@@ -238,7 +239,7 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
                     aria-invalid={!!errors.end_date}
                   />
                   {isCurrent && (
-                    <p className="text-xs text-muted-foreground">Dinonaktifkan — masih berlangsung</p>
+                    <p className="text-xs text-muted-foreground">Dinonaktifkan â€” masih berlangsung</p>
                   )}
                 </Field>
               </div>
@@ -254,7 +255,7 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
             </>
           )}
 
-          {/* ── LOMBA fields ── */}
+          {/* â”€â”€ LOMBA fields â”€â”€ */}
           {isLomba && (
             <>
               <Field label="Nama Lomba / Kompetisi" error={errors.position?.message} required>
@@ -306,7 +307,7 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
             </>
           )}
 
-          {/* ── ORGANISASI fields ── */}
+          {/* â”€â”€ ORGANISASI fields â”€â”€ */}
           {isOrganisasi && (
             <>
               <Field label="Nama Organisasi" error={errors.company?.message} required>
@@ -354,7 +355,7 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
                     aria-invalid={!!errors.end_date}
                   />
                   {isCurrent && (
-                    <p className="text-xs text-muted-foreground">Dinonaktifkan — masih berlangsung</p>
+                    <p className="text-xs text-muted-foreground">Dinonaktifkan â€” masih berlangsung</p>
                   )}
                 </Field>
               </div>
@@ -370,7 +371,7 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
             </>
           )}
 
-          {/* Description — shown for all types */}
+          {/* Description â€” shown for all types */}
           <Field label="Deskripsi" error={errors.description?.message}>
             <Textarea
               {...register('description')}
@@ -402,7 +403,7 @@ function ExperienceModal({ open, onOpenChange, initial, onSave }: ExperienceModa
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function ExperienceForm({ resumeId }: ExperienceFormProps) {
   const [entries, setEntries] = useState<Experience[]>([]);
@@ -412,7 +413,7 @@ export function ExperienceForm({ resumeId }: ExperienceFormProps) {
   const [editTarget, setEditTarget] = useState<Experience | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // ── AI Rewrite state ──
+  // â”€â”€ AI Rewrite state â”€â”€
   const {
     status: rewriteStatus,
     result: rewriteResult,
@@ -480,7 +481,7 @@ export function ExperienceForm({ resumeId }: ExperienceFormProps) {
     }
   }
 
-  // ── AI Rewrite handlers ──
+  // â”€â”€ AI Rewrite handlers â”€â”€
 
   async function startAIRewrite(entry: Experience) {
     setDispatchError(null);
@@ -601,10 +602,10 @@ export function ExperienceForm({ resumeId }: ExperienceFormProps) {
                             <span className="mr-2">Tingkat: {entry.competition_level}</span>
                           )}
                           {entry.competition_rank && (
-                            <span>· {entry.competition_rank}</span>
+                            <span>Â· {entry.competition_rank}</span>
                           )}
                         </p>
-                        <p className="text-xs text-muted-foreground">{entry.start_date}</p>
+                        <p className="text-xs text-muted-foreground">{formatDateId(entry.start_date)}</p>
                       </div>
                     ) : type === 'organisasi' ? (
                       <div className="space-y-0.5">
@@ -615,14 +616,14 @@ export function ExperienceForm({ resumeId }: ExperienceFormProps) {
                           </p>
                         )}
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {entry.start_date} – {entry.is_current ? 'Sekarang' : (entry.end_date ?? '—')}
+                          {formatDateId(entry.start_date)} – {entry.is_current ? 'Sekarang' : (entry.end_date ? formatDateId(entry.end_date) : '—')}
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-0.5">
                         <p className="text-sm text-muted-foreground">{entry.company}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {entry.start_date} – {entry.is_current ? 'Sekarang' : (entry.end_date ?? '—')}
+                          {formatDateId(entry.start_date)} – {entry.is_current ? 'Sekarang' : (entry.end_date ? formatDateId(entry.end_date) : '—')}
                         </p>
                       </div>
                     )}

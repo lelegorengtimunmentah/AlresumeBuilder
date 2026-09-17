@@ -19,6 +19,22 @@ export function formatDate(
 }
 
 /**
+ * Format an ISO date string for display in Bahasa Indonesia.
+ * e.g. "2025-07-01T00:00:00.000000Z" → "Jul 2025"
+ * Returns the original string unchanged when it cannot be parsed.
+ */
+export function formatDateId(
+  dateString: string | null | undefined,
+  options: Intl.DateTimeFormatOptions = { month: "short", year: "numeric" }
+): string {
+  if (!dateString) return "—";
+  // Parse as UTC then display — avoids off-by-one from local timezone offset
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  return date.toLocaleDateString("id-ID", { ...options, timeZone: "UTC" });
+}
+
+/**
  * Truncate a string to maxLength characters, appending "..." if it was cut.
  */
 export function truncate(str: string, maxLength: number): string {

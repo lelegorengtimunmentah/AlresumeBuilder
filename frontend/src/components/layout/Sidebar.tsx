@@ -130,7 +130,10 @@ export function Sidebar() {
           aria-current={pathname === '/resumes/analyze' ? 'page' : undefined}
         >
           <BarChart3 className="h-4 w-4 shrink-0" aria-hidden="true" />
-          Analisis Resume
+          <span className="flex-1">Analisis Resume</span>
+          <span className="inline-flex items-center rounded-full border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-amber-500">
+            Beta
+          </span>
         </Link>
       </nav>
 

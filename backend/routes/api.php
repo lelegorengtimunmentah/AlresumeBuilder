@@ -63,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     // Resume upload analysis
     Route::post('/resume-analyses', [UploadedAnalysisController::class, 'store']);
     Route::get('/resume-analyses/{analysis}', [UploadedAnalysisController::class, 'show']);
+    Route::post('/resume-analyses/{analysis}/generate-resume', [UploadedAnalysisController::class, 'generateResume']);
 
     // File uploads
     Route::post('/resumes/{resume}/photo', [UploadController::class, 'uploadPhoto']);
